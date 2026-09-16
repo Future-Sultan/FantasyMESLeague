@@ -1,0 +1,9 @@
+{
+  "name": "fantasy-mes-league",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fantasy MES League — a school fantasy football league where the players are the participants",
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.4"
+  }
+}
