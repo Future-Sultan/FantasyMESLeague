@@ -266,6 +266,7 @@ const BLANK = {
   played: false, goals: 0, assists: 0, saves: 0, tackles: 0,
   interceptions: 0, yellow: 0, red: 0, own_goals: 0, clean_sheet: false
 };
+const BUILD = 5, BUILD_NAME = "nine-a-side";   /* shown in the sidebar so you can see what is live */
 const SQUAD_SIZE = 9, XI_SIZE = 9, BENCH_SIZE = 0;
 const FORMATION = [1, 3, 3, 2];   /* how the nine sit on the pitch */
 
@@ -430,6 +431,7 @@ const Store = {
       this.status = "noconfig"; this.error = e.message; this.ready = true; return;
     }
     if (!window.supabase) { this.status = "noconfig"; this.error = "The authentication library did not load. Check your connection and refresh."; this.ready = true; return; }
+    this.apiVersion = cfg.apiVersion || 0;
     this.sb = window.supabase.createClient(cfg.url, cfg.anonKey);
     const { data } = await this.sb.auth.getSession();
     this.session = data.session || null;
@@ -638,6 +640,15 @@ const Store = {
     } catch (e) { out.push("✗ Could not reach /api/clubs: " + e.message); }
 
     out.push(window.supabase ? "✓ Auth library loaded." : "✗ Auth library did not load — check your internet connection.");
+
+    /* the commonest failure by far: one half of an update reached the repo */
+    const api = this.apiVersion || 0;
+    if (api === BUILD) out.push("✓ Page and server are both on build " + BUILD + " (" + BUILD_NAME + ").");
+    else if (!api) out.push("✗ The server did not report a build number, so api/config.js is out of date. Upload the whole api folder again.");
+    else if (api < BUILD) out.push("✗ This page is build " + BUILD + " but the server is on build " + api +
+      ". The api files did not update — upload api/ again.");
+    else out.push("✗ The server is on build " + api + " but this page is build " + BUILD +
+      ". index.html did not update, or your browser is showing a cached copy. Hard-refresh with Ctrl+Shift+R.");
     return out.join("<br>");
   },
   async signOut() {
@@ -790,6 +801,9 @@ function render() {
       '<div class="who"><b>' + esc(mName(S.me)) + '</b><span class="club">' + esc(tName(S.me)) + '</span>' +
         '<div class="sync' + (Store.status === "error" ? " bad" : "") + '">' +
           (Store.status === "error" ? "Connection problem" : "Live · synced " + (Store.lastSync ? ago(Store.lastSync.toISOString()) : "")) + '</div>' +
+        '<div class="mini" style="margin-top:4px">build ' + BUILD + ' · ' + BUILD_NAME +
+          (Store.apiVersion && Store.apiVersion !== BUILD
+            ? ' <span class="no">· server on ' + Store.apiVersion + '</span>' : "") + '</div>' +
         '<div class="row" style="margin-top:8px">' +
         '<button data-act="rename" style="color:var(--muted);font-size:12px">Rename club</button>' +
         '<button data-act="signout" style="color:var(--amber);font-size:12px">Sign out</button></div></div>' +
@@ -846,7 +860,9 @@ function gateView() {
 
     (diag ? '<div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--line)">' +
       '<div class="note">' + diag + '</div></div>' : "") +
-    '<div style="margin-top:14px"><button data-act="diag" class="mini" style="color:var(--dim)">Check connection</button></div>' +
+    '<div class="spread" style="margin-top:14px">' +
+    '<button data-act="diag" class="mini" style="color:var(--dim)">Check connection</button>' +
+    '<span class="mini">build ' + BUILD + ' · ' + BUILD_NAME + '</span></div>' +
     '</div></div>';
 }
 
