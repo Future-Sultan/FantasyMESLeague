@@ -279,6 +279,7 @@ function defConPoints(dc) {
 function scorePlayer(raw, isMotm) {
   const s = Object.assign({}, BLANK, raw || {});
   if (!s.played) return { total: 0, lines: [{ label: 'Did not play', pts: 0 }], played: false, dc: 0 };
+  if (s.override_pts != null) return { total: s.override_pts, lines: [{ label: 'Manual override', pts: s.override_pts }], played: true, dc: 0 };
   const lines = [];
   const add = (label, pts) => { if (pts !== 0) lines.push({ label, pts }); };
   add(s.goals === 1 ? 'Goal' : `Goals ×${s.goals}`, s.goals * RULES.goal);
@@ -510,7 +511,8 @@ const Store = {
       m.stats[s.player_id] = {
         played: s.played, goals: s.goals, assists: s.assists, saves: s.saves,
         tackles: s.tackles, interceptions: s.interceptions, yellow: s.yellow,
-        red: s.red, own_goals: s.own_goals, clean_sheet: s.clean_sheet
+        red: s.red, own_goals: s.own_goals, clean_sheet: s.clean_sheet,
+        override_pts: s.override_pts != null ? s.override_pts : null
       };
     }
     this.official = {};
@@ -1240,6 +1242,7 @@ function matchEditor(m) {
   const f = (id, k) => ((m.stats || {})[id] || {})[k] || 0;
   const on = id => !!(((m.stats || {})[id] || {}).played);
   const cs = id => !!(((m.stats || {})[id] || {}).clean_sheet);
+  const ov = id => { const v = ((m.stats || {})[id] || {}).override_pts; return v != null ? v : ""; };
   const n = (id, k) => '<td><input type="number" style="width:56px" data-st="' + id + '|' + k + '" value="' + f(id, k) + '" min="0"></td>';
   return '<div class="ph"><h1>' + matchdayName(m.date) + '</h1><p>' + dayName(m.date) + ' · gameweek ' + m.gw + '</p></div>' +
     '<div class="row" style="margin-bottom:14px">' +
@@ -1256,18 +1259,20 @@ function matchEditor(m) {
       '<label class="f" style="margin:0"><span>Away score</span><input type="number" id="m-away" value="' + (m.away == null ? "" : m.away) + '"></label>' +
     '</div><button class="btn sm" data-admin="saveMeta">Save matchday details</button></div>' +
     '<p class="note" style="margin-bottom:12px">Tick everyone who took part. Anyone unticked counts as absent and can be covered from a manager\'s bench.</p>' +
-    '<div class="tw"><table><thead><tr><th>Player</th><th>Played</th><th>G</th><th>A</th><th>Sv</th><th>Tkl</th><th>Int</th><th>Yel</th><th>Red</th><th>OG</th><th>CS</th><th>MOTM</th><th class="r">Pts</th></tr></thead><tbody>' +
+    '<div class="tw"><table><thead><tr><th>Player</th><th>Played</th><th>G</th><th>A</th><th>Sv</th><th>Tkl</th><th>Int</th><th>Yel</th><th>Red</th><th>OG</th><th>CS</th><th>MOTM</th><th class="r">Pts</th><th class="r" title="Leave blank to use the calculator. Type a number to override the calculated total.">Ovr</th></tr></thead><tbody>' +
     list.map(p => {
       const sc = scorePlayer((m.stats || {})[p.id], m.motm === p.id);
+      const hasOvr = ((m.stats || {})[p.id] || {}).override_pts != null;
       return '<tr><td style="white-space:nowrap">' + esc(p.name) + '</td>' +
         '<td><input type="checkbox" data-st="' + p.id + '|played" ' + (on(p.id) ? "checked" : "") + '></td>' +
         n(p.id, "goals") + n(p.id, "assists") + n(p.id, "saves") + n(p.id, "tackles") +
         n(p.id, "interceptions") + n(p.id, "yellow") + n(p.id, "red") + n(p.id, "own_goals") +
         '<td><input type="checkbox" data-st="' + p.id + '|clean_sheet" ' + (cs(p.id) ? "checked" : "") + '></td>' +
         '<td><input type="radio" name="motm" data-motm="' + p.id + '" ' + (m.motm === p.id ? "checked" : "") + '></td>' +
-        '<td class="r num ' + cls(sc.total) + '" style="font-weight:700">' + sc.total + '</td></tr>';
+        '<td class="r num ' + cls(sc.total) + '" style="font-weight:700' + (hasOvr ? ';color:var(--amber)' : '') + '">' + sc.total + '</td>' +
+        '<td><input type="number" style="width:56px" data-st="' + p.id + '|override_pts" placeholder="—" value="' + ov(p.id) + '"></td></tr>';
     }).join("") + '</tbody></table></div>' +
-    '<p class="note" style="margin-top:10px">The points column is a preview. The official figures are calculated on the server when you publish.</p>';
+    '<p class="note" style="margin-top:10px">Pts is a preview of what the server will calculate from the stats. Fill in Ovr to set a player\'s points directly — the server will use that number instead of calculating. Clear Ovr to go back to the calculator.</p>';
 }
 
 /* ============================================================================
@@ -1601,7 +1606,11 @@ document.addEventListener("change", ev => {
     const m = Store.matches[S.editMatch]; if (!m) return;
     const [pid, key] = el.dataset.st.split("|");
     m.stats[pid] = Object.assign({ played: false, goals: 0, assists: 0, saves: 0, tackles: 0, interceptions: 0, yellow: 0, red: 0, own_goals: 0, clean_sheet: false }, m.stats[pid] || {});
-    m.stats[pid][key] = el.type === "checkbox" ? el.checked : Math.max(0, parseInt(el.value || "0", 10) || 0);
+    if (key === 'override_pts') {
+      m.stats[pid][key] = el.value === '' ? null : parseInt(el.value, 10) || 0;
+    } else {
+      m.stats[pid][key] = el.type === "checkbox" ? el.checked : Math.max(0, parseInt(el.value || "0", 10) || 0);
+    }
     render();
   }
   if (el.dataset && el.dataset.price) {

@@ -92,7 +92,8 @@ module.exports = handler(async (req) => {
         saves: Math.max(0, +s.saves || 0), tackles: Math.max(0, +s.tackles || 0),
         interceptions: Math.max(0, +s.interceptions || 0),
         yellow: Math.max(0, +s.yellow || 0), red: Math.max(0, +s.red || 0),
-        own_goals: Math.max(0, +s.own_goals || 0), clean_sheet: !!s.clean_sheet
+        own_goals: Math.max(0, +s.own_goals || 0), clean_sheet: !!s.clean_sheet,
+        override_pts: (s.override_pts !== undefined && s.override_pts !== null && s.override_pts !== '') ? +s.override_pts : null
       }));
       if (rows.length) {
         const { error } = await admin.from('match_stats').upsert(rows, { onConflict: 'match_id,player_id' });

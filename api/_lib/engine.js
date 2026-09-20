@@ -24,6 +24,7 @@ function defConPoints(dc) {
 function scorePlayer(raw, isMotm) {
   const s = Object.assign({}, BLANK, raw || {});
   if (!s.played) return { total: 0, lines: [{ label: 'Did not play', pts: 0 }], played: false, dc: 0 };
+  if (s.override_pts != null) return { total: s.override_pts, lines: [{ label: 'Manual override', pts: s.override_pts }], played: true, dc: 0 };
   const lines = [];
   const add = (label, pts) => { if (pts !== 0) lines.push({ label, pts }); };
   add(s.goals === 1 ? 'Goal' : `Goals ×${s.goals}`, s.goals * RULES.goal);

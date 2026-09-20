@@ -92,6 +92,7 @@ create table if not exists match_stats (
   red           int not null default 0,
   own_goals     int not null default 0,
   clean_sheet   boolean not null default false,
+  override_pts  int,
   primary key (match_id, player_id)
 );
 
