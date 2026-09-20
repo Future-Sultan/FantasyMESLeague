@@ -1623,6 +1623,13 @@ document.addEventListener("change", ev => {
     const m = Store.matches[S.editMatch]; if (!m) return;
     m.motm = el.dataset.motm; render();
   }
+  if (['m-home', 'm-away', 'm-kick', 'm-state'].includes(el.id)) {
+    const m = Store.matches[S.editMatch]; if (!m) return;
+    if (el.id === 'm-home') m.home = el.value === '' ? null : +el.value;
+    if (el.id === 'm-away') m.away = el.value === '' ? null : +el.value;
+    if (el.id === 'm-kick') m.kickoff = el.value;
+    if (el.id === 'm-state') m.state = el.value;
+  }
 });
 document.addEventListener("keydown", e => {
   if (e.key === "Escape") closeModal();
