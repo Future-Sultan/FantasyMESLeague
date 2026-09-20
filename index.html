@@ -1635,12 +1635,13 @@ document.addEventListener("keydown", e => {
   await Store.connect();
   render();
   /* keeps every device in step once a moderator publishes */
+  const typing = () => { const a = document.activeElement; return a && (a.tagName === 'INPUT' || a.tagName === 'TEXTAREA'); };
   setInterval(() => {
-    if (Store.session && Store.core && !Store.busy && !$("#modal").innerHTML && document.visibilityState === "visible")
+    if (Store.session && Store.core && !Store.busy && !$("#modal").innerHTML && document.visibilityState === "visible" && !typing())
       Store.refresh(true).then(render);
   }, 25000);
   document.addEventListener("visibilitychange", () => {
-    if (document.visibilityState === "visible" && Store.session && Store.core) Store.refresh(true).then(render);
+    if (document.visibilityState === "visible" && Store.session && Store.core && !typing()) Store.refresh(true).then(render);
   });
 })();
 </script>
